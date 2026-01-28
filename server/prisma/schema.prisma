@@ -1,0 +1,25 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
+model Snippet {
+  id           Int       @id @default(autoincrement())
+  token        String    @unique
+  content      String
+  viewCount    Int       @default(0)
+  expiresAt    DateTime
+  lastAccessed DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+}
