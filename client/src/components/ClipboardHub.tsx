@@ -2,16 +2,15 @@ import React, { useState, useCallback, useMemo } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useClipboard } from "../hooks/useClipboard";
 import Button from "./ui/Button";
-import { Copy, Check, Users } from 'lucide-react';
-import { API_BASE_URL } from "../utils/api";
-import { WEBSOCKET_URL } from "../utils/api";
-import throttle from 'lodash.throttle';
+import { Copy, Check, Users } from "lucide-react";
+import { API_BASE_URL, WEBSOCKET_URL } from "../utils/api";
+import throttle from "lodash.throttle";
 
 export default function ClipboardHub() {
   const [content, setContent] = useState("");
   const [inputToken, setInputToken] = useState("");
   const [createdToken, setCreatedToken] = useState("");
-  const [roomToken, setRoomToken] = useState<string>(""); 
+  const [roomToken, setRoomToken] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
@@ -23,12 +22,11 @@ export default function ClipboardHub() {
     setContent(newContent);
   }, []);
 
- 
   const { connected, collaborators, updateContent } = useWebSocket(
     WEBSOCKET_URL,
     roomToken,
     onContentUpdate
-);
+  );
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
@@ -38,42 +36,39 @@ export default function ClipboardHub() {
     }
   };
 
-  // Copy the created token
   const handleCopyToken = async () => {
     if (createdToken) {
       const success = await copyToClipboard(createdToken);
       if (success) {
         setIsCopiedToken(true);
-        setTimeout(() => setIsCopiedToken(false), 700);
+        setTimeout(() => setIsCopiedToken(false), 1000);
       }
     }
   };
 
-  // Copy the entire collaborative content
   const handleCopyContent = async () => {
     if (content) {
       const success = await copyToClipboard(content);
       if (success) {
         setIsCopiedContent(true);
-        setTimeout(() => setIsCopiedContent(false), 700);
+        setTimeout(() => setIsCopiedContent(false), 1000);
       }
     }
   };
 
   const createClip = async () => {
+    if (!content) return;
     try {
       setIsCreating(true);
-      const response = await fetch(`${API_BASE_URL}/snippets`,  {
+      const response = await fetch(`${API_BASE_URL}/snippets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
       });
       const data = await response.json();
-      if (data.token) {
-        setCreatedToken(data.token);
-      }
+      if (data.token) setCreatedToken(data.token);
     } catch (error) {
-      console.error("Failed to create clip:", error);
+      console.error(error);
       alert("Failed to create clip");
     } finally {
       setIsCreating(false);
@@ -82,7 +77,7 @@ export default function ClipboardHub() {
 
   const joinClip = async () => {
     if (!inputToken) {
-      alert('Please enter a token');
+      alert("Please enter a token");
       return;
     }
     try {
@@ -90,149 +85,126 @@ export default function ClipboardHub() {
       const response = await fetch(`${API_BASE_URL}/snippets/${inputToken}`);
       const data = await response.json();
       if (response.ok) {
-        setContent(data.content || '');
+        setContent(data.content || "");
         setIsEditing(true);
-        setRoomToken(inputToken);  
+        setRoomToken(inputToken);
       } else {
-        alert('Invalid token or snippet not found');
+        alert("Invalid token or snippet not found");
       }
     } catch (error) {
-      console.error('Failed to join clip:', error);
-      alert('Failed to join clip');
+      console.error(error);
+      alert("Failed to join clip");
     } finally {
       setIsJoining(false);
     }
   };
 
-  // Memoize collaborators list rendering to prevent unnecessary re-renders
   const collaboratorList = useMemo(() => (
     <div className="flex items-center space-x-2">
-      <Users className="h-5 w-5 text-amber-900 dark:text-amber-200" />
-      <span className="text-sm text-amber-900 dark:text-amber-200">
+      <Users className="h-5 w-5 text-teal-600 dark:text-teal-300" />
+      <span className="text-sm text-teal-600 dark:text-teal-300">
         <strong>{collaborators.length} connected</strong>
       </span>
     </div>
   ), [collaborators.length]);
 
-  // Throttle content updates to the server
   const throttledUpdateContent = useCallback(
     throttle((content: string) => {
       updateContent(content);
-    }, 100), // 100ms throttle
+    }, 100),
     [updateContent]
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      
-      {!isEditing && (
-        <div className="md:col-span-3">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4">
+      {/* Main Editor */}
+      <div className="md:col-span-3 space-y-4">
+        <div className="bg-white dark:bg-gray-800 border rounded-2xl shadow-xl p-6">
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Enter your text here"
-            className="w-full min-h-[400px] p-6 text-lg resize-none bg-white dark:bg-gray-800 border rounded-xl shadow-lg focus:ring-2 focus:ring-blue-500 dark:text-white"
+            onChange={handleContentChange}
+            placeholder="Start typing or join a collaboration..."
+            className="w-full min-h-[400px] p-5 text-lg bg-white dark:bg-gray-800 rounded-xl border focus:outline-none focus:ring-2 focus:ring-teal-500 dark:text-white resize-none"
           />
-          <div className="mt-4 flex flex-col items-center space-y-4">
-           {createdToken && (
-              <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <span className="font-medium text-amber-900 dark:text-amber-200">
-                  Token: <strong>{createdToken}</strong>
-                </span>
-                <Button
-                  onClick={handleCopyToken}
-                  variant="ghost"
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-                >
-                  {isCopiedToken ? (
-                    <Check className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Copy className="h-5 w-5 text-amber-900 dark:text-amber-200" />
-                  )}
-                  <span className="sr-only">Copy token</span>
-                </Button>
-                {isCopiedToken && (
-                  <span className="text-sm text-green-500">Copied!</span>
-                )}
-              </div>
-            )}
-            <Button 
-              onClick={createClip} 
-              variant="primary" 
-              className="px-8"
+
+          {!isEditing && createdToken && (
+            <div className="flex items-center justify-between mt-4 bg-white/20 dark:bg-gray-700 rounded-lg p-3 shadow-inner">
+              <span className="font-medium text-teal-600 dark:text-teal-300">
+                Token: <strong>{createdToken}</strong>
+              </span>
+              <Button
+                onClick={handleCopyToken}
+                variant="secondary"
+                className="p-2 rounded-full"
+              >
+                {isCopiedToken ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5 text-teal-600 dark:text-teal-300" />}
+              </Button>
+              {isCopiedToken && <span className="text-green-500 text-sm ml-2">Copied!</span>}
+            </div>
+          )}
+
+          <div className="flex justify-end mt-4">
+            <Button
+              onClick={createClip}
+              variant="primary"
+              className="px-8 py-2"
               disabled={isCreating || !content}
             >
-              {isCreating ? 'Creating...' : 'Create'}
+              {isCreating ? "Creating..." : "Create Clip"}
             </Button>
           </div>
         </div>
-      )}
 
-      {/* Collaborative Editor */}
-      {isEditing && (
-        <div className="md:col-span-3">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-amber-900 dark:text-amber-200">
+        {isEditing && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-teal-600 dark:text-teal-300">
                 Collaborative Editor
               </h2>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 {collaboratorList}
-                <Button
-                  onClick={handleCopyContent}
-                  variant="ghost"
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-                >
-                  {isCopiedContent ? (
-                    <Check className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Copy className="h-5 w-5 text-amber-900 dark:text-amber-200" />
-                  )}
-                  <span className="sr-only">Copy document content</span>
+                <Button onClick={handleCopyContent} variant="secondary" className="p-2 rounded-full">
+                  {isCopiedContent ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5 text-teal-600 dark:text-teal-300" />}
                 </Button>
-                {isCopiedContent && (
-                  <span className="text-sm text-green-500">Copied!</span>
-                )}
+                {isCopiedContent && <span className="text-green-500 text-sm ml-1">Copied!</span>}
               </div>
             </div>
             <textarea
               value={content}
               onChange={handleContentChange}
-              className="w-full min-h-[400px] p-6 text-lg resize-none bg-white dark:bg-gray-800 border rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white"
+              className="w-full min-h-[400px] p-5 text-lg bg-white dark:bg-gray-800 rounded-xl border focus:outline-none focus:ring-2 focus:ring-teal-500 dark:text-white resize-none"
             />
-            <div className="mt-4 flex justify-end">
-            <Button 
+            <div className="flex justify-end">
+              <Button
                 onClick={() => window.location.reload()}
                 variant="primary"
-                className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600"
-                >
-                Create again
-            </Button>
+                className="px-6 py-2"
+              >
+                Create Again
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Sidebar */}
       <div className="md:col-span-1 space-y-4">
-        <div className="bg-white dark:bg-gray-800 border rounded-lg p-4 shadow-sm">
-          <div className="mb-3 font-medium text-amber-900 dark:text-amber-200">
-            Join Collaboration
-          </div>
-          <div className="flex flex-col gap-2">
+        <div className="bg-white dark:bg-gray-800 border rounded-2xl shadow-lg p-4">
+          <h3 className="font-medium text-teal-600 dark:text-teal-300 mb-3">Start a shared session</h3>
+          <div className="flex flex-col gap-3">
             <input
               value={inputToken}
               onChange={(e) => setInputToken(e.target.value)}
               placeholder="Enter token"
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
-            <Button 
-              onClick={joinClip} 
+            <Button
+              onClick={joinClip}
               variant="primary"
+              className="w-full py-2"
               disabled={isJoining}
-              className="w-full"
             >
-              {isJoining ? 'Receiving' : 'Receive'}
+              {isJoining ? "Receiving..." : "Receive Clip"}
             </Button>
           </div>
         </div>
@@ -240,4 +212,3 @@ export default function ClipboardHub() {
     </div>
   );
 }
-export { API_BASE_URL };

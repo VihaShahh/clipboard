@@ -1,23 +1,36 @@
-import React from 'react';
+import React from "react";
+import { Linkedin } from "lucide-react";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-blue-600 dark:bg-slate-900 text-white py-6 px-4">
-      <div className="container mx-auto text-center">
-        <p className="text-sm">
-          Built by{" "}
+    <footer className="bg-gradient-to-r from-[#026E81] to-[#014f5c] dark:from-[#013941] dark:to-[#012c32] text-white py-8 px-4 shadow-inner">
+      <div className="container mx-auto text-center space-y-3">
+        <h3 className="text-lg font-semibold tracking-wide">
+          Built & Designed by{" "}
           <a
-            href="https://www.linkedin.com/in/kishan-kumar03"
+            href="https://www.linkedin.com/in/vihashah"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-bold hover:text-blue-200"
+            className="font-bold underline underline-offset-4 hover:text-teal-200 transition-all duration-300"
           >
-            @Kishan
+            Viha Shah
           </a>
-        </p>
-        <p className="text-sm mt-2">
+        </h3>
+
+        <div className="flex justify-center gap-3 mt-2">
+          <a
+            href="https://www.linkedin.com/in/vihashah"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition duration-300"
+          >
+            <Linkedin size={20} />
+          </a>
+        </div>
+
+        <p className="text-sm mt-4 opacity-80">
           &copy; {currentYear} CopyIt. All rights reserved.
         </p>
       </div>
